@@ -324,32 +324,6 @@ function takeCommand(message) {
       content.textContent = "Please specify a valid time for the alarm.";
     }
     return;
-  }
-
-  if (
-    message.includes("nearest restaurant") ||
-    message.includes("restaurants near me")
-  ) {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          findNearestRestaurants(location).then((restaurants) => {
-            const response = `Here are some restaurants near you:\n${restaurants}`;
-            speak(response);
-            content.textContent = response;
-          });
-        },
-        () => {
-          speak("Could not get your location.");
-        }
-      );
-    } else {
-      speak("Geolocation is not supported by this browser.");
-    }
   } else if (
     message.includes("today's weather") ||
     message.includes("today weather")
@@ -456,7 +430,7 @@ function takeCommand(message) {
   } else if (message.includes("call")) {
     const name = message.split("call")[1]?.trim();
     if (name) {
-      fetch(`http://localhost:3000/api/call-contact/${name}`, {
+      fetch(`https://jarvis-7ise.onrender.com/api/call-contact/${name}`, {
         method: "GET",
       })
         .then((response) => response.json())
@@ -621,29 +595,30 @@ function playSong(message) {
 }
 
 function openCamera() {
+  // Check if the device is a mobile device
   if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-    if (/Android/i.test(navigator.userAgent)) {
-      window.location.href =
-        "intent://#Intent;action=android.media.action.IMAGE_CAPTURE;end";
-    } else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-      window.location.href = "camera://";
-    }
-  } else {
+    // Use the getUserMedia API to access the camera
     navigator.mediaDevices
       .getUserMedia({ video: true })
       .then((stream) => {
-        mediaStream = stream;
-        const videoElement = document.createElement("video");
-        videoElement.id = "cameraStream";
+        // Create or select the video element to display the camera feed
+        let videoElement = document.getElementById("cameraStream");
+        if (!videoElement) {
+          videoElement = document.createElement("video");
+          videoElement.id = "cameraStream";
+          videoElement.autoplay = true;
+          document.body.appendChild(videoElement);
+        }
         videoElement.srcObject = stream;
         videoElement.play();
-        document.body.appendChild(videoElement);
         speak("Camera opened on your device.");
       })
       .catch((error) => {
-        console.error(error);
+        console.error("Error accessing the camera: ", error);
         speak("There was an error opening the camera on your device.");
       });
+  } else {
+    speak("Camera access is only available on mobile devices.");
   }
 }
 
