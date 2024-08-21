@@ -99,9 +99,9 @@ app.get("/api/call-contact/:name", async (req, res) => {
       });
     }
 
-    // Simulate making a call (this is where you could integrate with a real call API if needed)
+    // Simulate making a call
     const message = `Calling ${contact.name} at ${contact.phoneNumber}...`;
-    res.json({ success: true, message });
+    res.json({ success: true, message, phoneNumber: contact.phoneNumber });
   } catch (error) {
     res.status(500).json({ success: false, error: "Failed to make the call." });
   }
@@ -114,23 +114,5 @@ app.get("/api/get-numbers", async (req, res) => {
     res.json(contacts);
   } catch (err) {
     res.status(500).json({ error: "Failed to retrieve numbers" });
-  }
-});
-
-// Endpoint to fetch nearby restaurants
-app.get("/api/nearby-restaurants", async (req, res) => {
-  const { location } = req.query;
-  const apiKey = "AIzaSyB-PAw7D4d8Ocx30WKc1CPcV7wVFB3IgVc";
-
-  const radius = 10000; // Radius in meters
-
-  try {
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${location}&radius=${radius}&type=restaurant&key=${apiKey}`
-    );
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch data" });
   }
 });
