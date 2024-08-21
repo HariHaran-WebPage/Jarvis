@@ -430,7 +430,7 @@ function takeCommand(message) {
   } else if (message.includes("call")) {
     const name = message.split("call")[1]?.trim();
     if (name) {
-      fetch(`https://jarvis-7ise.onrender.com/api/call-contact/${name}`, {
+      fetch(`https://jarvis-0l79.onrender.com/api/call-contact/${name}`, {
         method: "GET",
       })
         .then((response) => response.json())
@@ -442,6 +442,7 @@ function takeCommand(message) {
               content.textContent = data.message;
 
               if (/Mobi|Android/i.test(navigator.userAgent)) {
+                // Initiating a phone call on mobile devices
                 window.location.href = `tel:${data.phoneNumber}`;
               } else {
                 alert(
@@ -593,38 +594,33 @@ function playSong(message) {
     speak("Please specify a song to play.");
   }
 }
+let videoElement = document.getElementById("cameraStream");
+let capturedImage = null;
 
 function openCamera() {
-  // Check if the device is a mobile device
-  if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-    // Use the getUserMedia API to access the camera
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
     navigator.mediaDevices
       .getUserMedia({ video: true })
       .then((stream) => {
-        // Create or select the video element to display the camera feed
-        let videoElement = document.getElementById("cameraStream");
-        if (!videoElement) {
-          videoElement = document.createElement("video");
-          videoElement.id = "cameraStream";
-          videoElement.autoplay = true;
-          document.body.appendChild(videoElement);
-        }
         videoElement.srcObject = stream;
-        videoElement.play();
-        speak("Camera opened on your device.");
+        videoElement.style.display = "block";
+        videoElement.style.width = "320px"; // Reduced width
+        videoElement.style.height = "240px"; // Reduced height
+
+        document.querySelector(".image-container").style.display = "none";
+        document.querySelector(".content").style.display = "none";
       })
       .catch((error) => {
         console.error("Error accessing the camera: ", error);
         speak("There was an error opening the camera on your device.");
       });
   } else {
-    speak("Camera access is only available on mobile devices.");
+    speak("Camera access is not supported on your device.");
   }
 }
 
 function closeCamera() {
-  const videoElement = document.getElementById("cameraStream");
-  if (videoElement) {
+  if (videoElement && videoElement.srcObject) {
     const stream = videoElement.srcObject;
     const tracks = stream.getTracks();
 
@@ -633,16 +629,15 @@ function closeCamera() {
     });
 
     videoElement.srcObject = null;
-    document.body.removeChild(videoElement);
-    speak("Camera closed.");
-  } else {
-    speak("Camera is not currently open.");
+    videoElement.style.display = "none";
+    document.querySelector(".image-container").style.display = "block";
+    document.querySelector(".content").style.display = "block";
+
+    closePhoto(); // Hide the captured image and download button when the camera is closed
   }
 }
-
 function clickPhoto() {
-  const videoElement = document.getElementById("cameraStream");
-  if (videoElement) {
+  if (videoElement && videoElement.srcObject) {
     const canvas = document.createElement("canvas");
     canvas.width = videoElement.videoWidth;
     canvas.height = videoElement.videoHeight;
@@ -652,13 +647,81 @@ function clickPhoto() {
 
     const img = document.createElement("img");
     img.src = canvas.toDataURL("image/png");
-    document.body.appendChild(img);
+    img.style.maxWidth = "320px"; // Reduced size of the displayed photo
+    img.style.display = "block";
+    img.style.margin = "20px 0";
+    img.alt = "Captured Photo";
 
-    speak("Photo clicked.");
+    // Create a container for the image and download button
+    const imgContainer = document.createElement("div");
+    imgContainer.style.marginBottom = "20px";
+
+    // Add the image to the container
+    imgContainer.appendChild(img);
+
+    // Display the download button
+    const downloadButton = document.createElement("button");
+    downloadButton.textContent = "Download Photo";
+    downloadButton.style.display = "block";
+    downloadButton.style.marginTop = "10px";
+    downloadButton.onclick = () => downloadPhoto(img.src);
+    imgContainer.appendChild(downloadButton);
+
+    // Add the container to the body
+    document.body.appendChild(imgContainer);
+
+    speak("Photo clicked and displayed. You can now download it.");
   } else {
     speak("Camera is not currently open.");
   }
 }
+
+function downloadPhoto(imgSrc) {
+  if (imgSrc) {
+    const link = document.createElement("a");
+    link.href = imgSrc;
+    link.download = "photo.png";
+    link.click();
+  } else {
+    speak("No photo available to download.");
+  }
+}
+
+function closePhoto() {
+  const existingImg = document.querySelector("#capturedImage");
+  const existingButton = document.querySelector("#downloadButton");
+  if (existingImg) existingImg.remove();
+  if (existingButton) existingButton.remove();
+
+  capturedImage = null;
+  speak("Photo closed.");
+}
+
+// Initialize speech recognition
+const recognition = new (window.SpeechRecognition ||
+  window.webkitSpeechRecognition)();
+recognition.lang = "en-US";
+
+// Event listener for speech recognition
+recognition.onresult = (event) => {
+  const speechToText = event.results[0][0].transcript.toLowerCase();
+  console.log("You said:", speechToText);
+
+  if (speechToText.includes("open camera")) {
+    openCamera();
+  } else if (speechToText.includes("click photo")) {
+    clickPhoto();
+  } else if (speechToText.includes("close camera")) {
+    closeCamera();
+  } else if (speechToText.includes("close photo")) {
+    closePhoto();
+  }
+};
+
+// Start speech recognition when the microphone button is clicked
+document.querySelector(".talk").addEventListener("click", () => {
+  recognition.start();
+});
 
 function startRecording() {
   if (!mediaRecorder) {
